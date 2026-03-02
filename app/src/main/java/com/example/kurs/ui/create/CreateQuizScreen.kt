@@ -1,8 +1,8 @@
 package com.example.kurs.ui.create
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -51,12 +51,15 @@ fun CreateQuizScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                .padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Основное", style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(12.dp))
@@ -91,7 +94,6 @@ fun CreateQuizScreen(
                 BlockSection(
                     title = "Лёгкий уровень",
                     questions = state.easyQuestions,
-                    level = BlockLevel.EASY,
                     onQuestionChange = { index, draft -> viewModel.updateQuestion(BlockLevel.EASY, index, draft) },
                     onAddQuestion = { viewModel.addQuestion(BlockLevel.EASY) },
                     onRemoveQuestion = { index -> viewModel.removeQuestion(BlockLevel.EASY, index) }
@@ -102,7 +104,6 @@ fun CreateQuizScreen(
                 BlockSection(
                     title = "Средний уровень",
                     questions = state.mediumQuestions,
-                    level = BlockLevel.MEDIUM,
                     onQuestionChange = { index, draft -> viewModel.updateQuestion(BlockLevel.MEDIUM, index, draft) },
                     onAddQuestion = { viewModel.addQuestion(BlockLevel.MEDIUM) },
                     onRemoveQuestion = { index -> viewModel.removeQuestion(BlockLevel.MEDIUM, index) }
@@ -113,7 +114,6 @@ fun CreateQuizScreen(
                 BlockSection(
                     title = "Сложный уровень",
                     questions = state.hardQuestions,
-                    level = BlockLevel.HARD,
                     onQuestionChange = { index, draft -> viewModel.updateQuestion(BlockLevel.HARD, index, draft) },
                     onAddQuestion = { viewModel.addQuestion(BlockLevel.HARD) },
                     onRemoveQuestion = { index -> viewModel.removeQuestion(BlockLevel.HARD, index) }
@@ -137,14 +137,16 @@ fun CreateQuizScreen(
 fun BlockSection(
     title: String,
     questions: List<QuestionDraft>,
-    level: BlockLevel,
     onQuestionChange: (Int, QuestionDraft) -> Unit,
     onAddQuestion: () -> Unit,
     onRemoveQuestion: (Int) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                AssistChip(onClick = {}, label = { Text("${questions.size} вопросов") })
+            }
             Spacer(Modifier.height(12.dp))
 
             questions.forEachIndexed { index, draft ->
@@ -220,6 +222,11 @@ fun QuestionDraftItem(
             Spacer(Modifier.height(16.dp))
 
             Text("Тип вопроса", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = if (draft.type == QuestionType.MULTIPLY_CHOICE) "Можно выбрать несколько правильных ответов" else "Можно выбрать только один правильный ответ",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             Spacer(Modifier.height(8.dp))
 
@@ -277,21 +284,27 @@ fun QuestionDraftItem(
                             .padding(8.dp)
                     ) {
 
-                        Checkbox(
-                            checked = option.isCorrect,
-                            onCheckedChange = { checked ->
-                                val newOptions = draft.options.mapIndexed { i, o ->
-                                    if (draft.type == QuestionType.SINGLE_CHOICE) {
-                                        o.copy(isCorrect = i == optIndex && checked)
-                                    } else {
-                                        if (i == optIndex)
-                                            o.copy(isCorrect = checked)
-                                        else o
+                        if (draft.type == QuestionType.SINGLE_CHOICE) {
+                            RadioButton(
+                                selected = option.isCorrect,
+                                onClick = {
+                                    val newOptions = draft.options.mapIndexed { i, o ->
+                                        o.copy(isCorrect = i == optIndex)
                                     }
+                                    onDraftChange(draft.copy(options = newOptions))
                                 }
-                                onDraftChange(draft.copy(options = newOptions))
-                            }
-                        )
+                            )
+                        } else {
+                            Checkbox(
+                                checked = option.isCorrect,
+                                onCheckedChange = { checked ->
+                                    val newOptions = draft.options.mapIndexed { i, o ->
+                                        if (i == optIndex) o.copy(isCorrect = checked) else o
+                                    }
+                                    onDraftChange(draft.copy(options = newOptions))
+                                }
+                            )
+                        }
 
                         OutlinedTextField(
                             value = option.text,

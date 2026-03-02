@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.kurs.data.db.entity.BlockLevel
+import com.example.kurs.data.db.entity.QuestionType
 import com.example.kurs.data.db.relation.BlockWithQuestions
 import com.example.kurs.data.db.relation.QuizWithBlocks
 import com.example.kurs.ui.navigation.Screen
@@ -65,7 +66,7 @@ fun QuizPlayScreen(
                         quiz = s.quiz,
                         block = s.block,
                         questionIndex = s.questionIndex,
-                        selectedOptionId = s.selectedOptionId,
+                        selectedOptionIds = s.selectedOptionIds,
                         onSelectAnswer = { viewModel.selectAnswer(it) },
                         onNext = { viewModel.nextQuestion() }
                     )
@@ -131,12 +132,13 @@ fun QuestionContent(
     quiz: QuizWithBlocks,
     block: BlockWithQuestions,
     questionIndex: Int,
-    selectedOptionId: Long?,
+    selectedOptionIds: Set<Long>,
     onSelectAnswer: (Long) -> Unit,
     onNext: () -> Unit
 ) {
     val question = block.questions[questionIndex]
     val totalQuestions = block.questions.size
+    val isMultipleChoice = question.question.type == QuestionType.MULTIPLY_CHOICE
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -169,7 +171,7 @@ fun QuestionContent(
 
         items(question.options.size) { index ->
             val option = question.options[index]
-            val isSelected = option.id == selectedOptionId
+            val isSelected = selectedOptionIds.contains(option.id)
             Card(
                 onClick = { onSelectAnswer(option.id) },
                 modifier = Modifier.fillMaxWidth(),
@@ -185,7 +187,11 @@ fun QuestionContent(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = isSelected, onClick = { onSelectAnswer(option.id) })
+                    if (isMultipleChoice) {
+                        Checkbox(checked = isSelected, onCheckedChange = { onSelectAnswer(option.id) })
+                    } else {
+                        RadioButton(selected = isSelected, onClick = { onSelectAnswer(option.id) })
+                    }
                     Spacer(Modifier.width(8.dp))
                     Text(text = option.text, style = MaterialTheme.typography.bodyLarge)
                 }
@@ -197,7 +203,7 @@ fun QuestionContent(
             Button(
                 onClick = onNext,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedOptionId != null
+                enabled = selectedOptionIds.isNotEmpty()
             ) {
                 val isLastQuestion = questionIndex == totalQuestions - 1
                 val isLastBlock = quiz.blocks.lastOrNull()?.block?.id == block.block.id
