@@ -8,205 +8,175 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.kurs.data.db.entity.BlockLevel
-import com.example.kurs.data.db.relation.BlockWithQuestions
-import com.example.kurs.data.db.relation.QuizWithBlocks
+import com.example.kurs.data.db.entity.QuizResultEntity
 import com.example.kurs.ui.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuizPlayScreen(
+fun QuizResultScreen(
     navController: NavController,
     quizId: Long,
-    viewModel: QuizPlayViewModel = hiltViewModel()
+    viewModel: QuizResultViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsState()
+    val result by viewModel.result.collectAsState()
 
-    LaunchedEffect(quizId) { viewModel.loadQuiz(quizId) }
-
-    LaunchedEffect(state) {
-        if (state is PlayState.Finished) {
-            navController.navigate(Screen.Result.createRoute((state as PlayState.Finished).quizId)) {
-                popUpTo(Screen.Play.route) { inclusive = true }
-            }
-        }
-    }
+    LaunchedEffect(quizId) { viewModel.loadResult(quizId) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Тест") },
+                title = { Text("Результаты") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                    IconButton(onClick = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "На главную")
                     }
                 }
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (val s = state) {
-                is PlayState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is PlayState.BlockIntro -> {
-                    BlockIntroContent(
-                        level = s.level,
-                        questionCount = s.questionCount,
-                        onStart = { viewModel.startBlock() }
-                    )
-                }
-                is PlayState.Question -> {
-                    QuestionContent(
-                        quiz = s.quiz,
-                        block = s.block,
-                        questionIndex = s.questionIndex,
-                        selectedOptionId = s.selectedOptionId,
-                        onSelectAnswer = { viewModel.selectAnswer(it) },
-                        onNext = { viewModel.nextQuestion() }
-                    )
-                }
-                is PlayState.Error -> {
-                    Text(
-                        text = s.message,
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                else -> Unit
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (result == null) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else {
+                ResultContent(result = result!!, onHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Home.route) { inclusive = false }
+                    }
+                })
             }
         }
     }
 }
 
 @Composable
-fun BlockIntroContent(
-    level: BlockLevel,
-    questionCount: Int,
-    onStart: () -> Unit
-) {
-    val levelName = when (level) {
-        BlockLevel.EASY -> "Лёгкий"
-        BlockLevel.MEDIUM -> "Средний"
-        BlockLevel.HARD -> "Сложный"
-    }
-    val levelColor = when (level) {
-        BlockLevel.EASY -> MaterialTheme.colorScheme.tertiary
-        BlockLevel.MEDIUM -> MaterialTheme.colorScheme.secondary
-        BlockLevel.HARD -> MaterialTheme.colorScheme.error
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Блок: $levelName",
-            style = MaterialTheme.typography.headlineMedium,
-            color = levelColor
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = "Вопросов: $questionCount",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(48.dp))
-        Button(
-            onClick = onStart,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Начать блок")
-        }
-    }
-}
-
-@Composable
-fun QuestionContent(
-    quiz: QuizWithBlocks,
-    block: BlockWithQuestions,
-    questionIndex: Int,
-    selectedOptionId: Long?,
-    onSelectAnswer: (Long) -> Unit,
-    onNext: () -> Unit
-) {
-    val question = block.questions[questionIndex]
-    val totalQuestions = block.questions.size
-
+fun ResultContent(result: QuizResultEntity, onHome: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item {
-            LinearProgressIndicator(
-                progress = { (questionIndex + 1).toFloat() / totalQuestions },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(4.dp))
             Text(
-                text = "Вопрос ${questionIndex + 1} из $totalQuestions",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Тест завершён!",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
             )
         }
 
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Общий результат", style = MaterialTheme.typography.titleMedium)
+                    LinearProgressIndicator(
+                        progress = { result.overallPercent / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Text(
-                        text = question.question.text,
+                        text = "%.1f%%".format(result.overallPercent),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = when {
+                            result.overallPercent >= 80f -> MaterialTheme.colorScheme.tertiary
+                            result.overallPercent >= 50f -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.error
+                        }
+                    )
+                }
+            }
+        }
+
+        item {
+            BlockResultCard(
+                title = "Лёгкий уровень",
+                correct = result.easyCorrect,
+                total = result.easyTotal,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        item {
+            BlockResultCard(
+                title = "Средний уровень",
+                correct = result.mediumCorrect,
+                total = result.mediumTotal,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+
+        item {
+            BlockResultCard(
+                title = "Сложный уровень",
+                correct = result.hardCorrect,
+                total = result.hardTotal,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Время", style = MaterialTheme.typography.titleMedium)
+                    val minutes = result.timeSpentSeconds / 60
+                    val seconds = result.timeSpentSeconds % 60
+                    Text(
+                        text = "%02d:%02d".format(minutes, seconds),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
         }
 
-        items(question.options.size) { index ->
-            val option = question.options[index]
-            val isSelected = option.id == selectedOptionId
-            Card(
-                onClick = { onSelectAnswer(option.id) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isSelected)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surface
-                ),
-                border = if (isSelected) ButtonDefaults.outlinedButtonBorder else null
+        item {
+            Button(
+                onClick = onHome,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(selected = isSelected, onClick = { onSelectAnswer(option.id) })
-                    Spacer(Modifier.width(8.dp))
-                    Text(text = option.text, style = MaterialTheme.typography.bodyLarge)
-                }
+                Text("На главную")
             }
         }
+    }
+}
 
-        item {
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onNext,
+@Composable
+fun BlockResultCard(title: String, correct: Int, total: Int, color: Color) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = selectedOptionId != null
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val isLastQuestion = questionIndex == totalQuestions - 1
-                val isLastBlock = quiz.blocks.lastOrNull()?.block?.id == block.block.id
+                Text(title, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    when {
-                        !isLastQuestion -> "Следующий вопрос"
-                        !isLastBlock -> "Следующий блок"
-                        else -> "Завершить тест"
-                    }
+                    text = "$correct / $total",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = color
+                )
+            }
+            if (total > 0) {
+                LinearProgressIndicator(
+                    progress = { correct.toFloat() / total },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = color
                 )
             }
         }

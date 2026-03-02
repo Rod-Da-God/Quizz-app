@@ -19,8 +19,6 @@ data class QuestionDraft(
     val type: QuestionType = QuestionType.SINGLE_CHOICE,
     val options: List<OptionDraft> = listOf(
         OptionDraft(text = "", isCorrect = false),
-        OptionDraft(text = "", isCorrect = false),
-        OptionDraft(text = "", isCorrect = false),
         OptionDraft(text = "", isCorrect = false)
     )
 )

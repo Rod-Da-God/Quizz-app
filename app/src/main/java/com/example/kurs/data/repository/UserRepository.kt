@@ -22,6 +22,8 @@ class UserRepository @Inject constructor(
 
     suspend fun emailExists(email: String): Boolean = userDao.emailExists(email)
 
+    suspend fun getUserById(id: Long): UserEntity? = userDao.getById(id)
+
     suspend fun saveSession(userId: Long) = prefs.saveUserId(userId)
 
     suspend fun logout() = prefs.clear()
