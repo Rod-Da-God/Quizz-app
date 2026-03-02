@@ -3,6 +3,7 @@ package com.example.kurs.ui.play
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kurs.data.db.entity.BlockLevel
+import com.example.kurs.data.db.entity.QuestionType
 import com.example.kurs.data.db.relation.BlockWithQuestions
 import com.example.kurs.data.db.relation.QuizWithBlocks
 import com.example.kurs.data.repository.UserRepository
@@ -23,7 +24,7 @@ sealed class PlayState {
         val quiz: QuizWithBlocks,
         val block: BlockWithQuestions,
         val questionIndex: Int,
-        val selectedOptionId: Long?
+        val selectedOptionIds: Set<Long>
     ) : PlayState()
     data class Finished(val quizId: Long) : PlayState()
     data class Error(val message: String) : PlayState()
@@ -43,7 +44,7 @@ class QuizPlayViewModel @Inject constructor(
     private var quiz: QuizWithBlocks? = null
     private var currentBlockIndex = 0
     private var currentQuestionIndex = 0
-    private val answers = mutableMapOf<Long, Long>() // questionId -> optionId
+    private val answers = mutableMapOf<Long, Set<Long>>() // questionId -> selected optionIds
     private var startTime = System.currentTimeMillis()
 
     fun loadQuiz(quizId: Long) {
@@ -73,9 +74,21 @@ class QuizPlayViewModel @Inject constructor(
 
     fun selectAnswer(optionId: Long) {
         val current = _state.value as? PlayState.Question ?: return
-        val questionId = current.block.questions[current.questionIndex].question.id
-        answers[questionId] = optionId
-        _state.value = current.copy(selectedOptionId = optionId)
+        val currentQuestion = current.block.questions[current.questionIndex]
+        val questionId = currentQuestion.question.id
+
+        val updatedSelection = if (currentQuestion.question.type == QuestionType.MULTIPLY_CHOICE) {
+            if (current.selectedOptionIds.contains(optionId)) {
+                current.selectedOptionIds - optionId
+            } else {
+                current.selectedOptionIds + optionId
+            }
+        } else {
+            setOf(optionId)
+        }
+
+        answers[questionId] = updatedSelection
+        _state.value = current.copy(selectedOptionIds = updatedSelection)
     }
 
     fun nextQuestion() {
@@ -104,7 +117,7 @@ class QuizPlayViewModel @Inject constructor(
             quiz = q,
             block = block,
             questionIndex = currentQuestionIndex,
-            selectedOptionId = questionId?.let { answers[it] }
+            selectedOptionIds = questionId?.let { answers[it] } ?: emptySet()
         )
     }
 

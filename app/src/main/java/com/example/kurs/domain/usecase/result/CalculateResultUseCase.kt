@@ -1,6 +1,7 @@
 package com.example.kurs.domain.usecase.result
 
 import com.example.kurs.data.db.entity.BlockLevel
+import com.example.kurs.data.db.entity.QuestionType
 import com.example.kurs.data.db.entity.QuizResultEntity
 import com.example.kurs.data.db.relation.QuizWithBlocks
 import com.example.kurs.data.repository.QuizResultRepository
@@ -14,7 +15,7 @@ class CalculateResultUseCase @Inject constructor(
     suspend operator fun invoke(
         userId: Long,
         quiz: QuizWithBlocks,
-        answers: Map<Long, Long>,
+        answers: Map<Long, Set<Long>>,
         timeSpentSeconds: Long
     ): QuizResult {
         fun calcBlock(level: BlockLevel): BlockResult {
@@ -22,8 +23,12 @@ class CalculateResultUseCase @Inject constructor(
                 ?: return BlockResult(0, 0)
             var correct = 0
             block.questions.forEach { q ->
-                val selected = answers[q.question.id]
-                val isCorrect = q.options.any { it.id == selected && it.isCorrect }
+                val selected = answers[q.question.id] ?: emptySet()
+                val correctOptionIds = q.options.filter { it.isCorrect }.map { it.id }.toSet()
+                val isCorrect = when (q.question.type) {
+                    QuestionType.MULTIPLY_CHOICE -> selected == correctOptionIds && selected.isNotEmpty()
+                    else -> selected.size == 1 && selected.first() in correctOptionIds
+                }
                 if (isCorrect) correct++
             }
             return BlockResult(correct, block.questions.size)
