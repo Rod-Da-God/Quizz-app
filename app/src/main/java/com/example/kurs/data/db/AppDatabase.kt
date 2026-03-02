@@ -29,18 +29,4 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun questionDao(): QuestionDao
     abstract fun quizResultDao(): QuizResultDao
     abstract fun achievementDao(): AchievementDao
-
-    companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
-
-        fun getInstance(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "quiz_database"
-                ).build().also { INSTANCE = it }
-            }
-        }
-    }
 }

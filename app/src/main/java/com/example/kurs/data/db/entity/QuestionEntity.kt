@@ -12,7 +12,7 @@ enum class QuestionType  {
 @Entity(
     tableName = "questions",
     foreignKeys = [ForeignKey(
-        entity = QuizEntity::class,
+        entity = BlockEntity::class,
         parentColumns = ["id"],
         childColumns = ["blockId"],
         onDelete = ForeignKey.CASCADE
