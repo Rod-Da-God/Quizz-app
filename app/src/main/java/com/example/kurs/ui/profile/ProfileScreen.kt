@@ -59,7 +59,6 @@ fun ProfileScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // User info card
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(20.dp)) {
@@ -107,7 +106,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Results history
                 if (state.results.isNotEmpty()) {
                     item {
                         Text("История результатов", style = MaterialTheme.typography.titleMedium)
@@ -118,7 +116,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // Logout
                 item {
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(
