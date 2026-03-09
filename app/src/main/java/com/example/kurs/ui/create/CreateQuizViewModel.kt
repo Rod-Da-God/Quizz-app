@@ -20,7 +20,8 @@ data class QuestionDraft(
     val options: List<OptionDraft> = listOf(
         OptionDraft(text = "", isCorrect = false),
         OptionDraft(text = "", isCorrect = false)
-    )
+    ),
+    val explanation: String = ""
 )
 
 data class OptionDraft(
@@ -37,6 +38,7 @@ data class CreateQuizUiState(
     val hardQuestions: List<QuestionDraft> = listOf(QuestionDraft()),
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
+    val savedTitle: String = "",
     val error: String? = null
 )
 
@@ -69,15 +71,9 @@ class CreateQuizViewModel @Inject constructor(
 
     fun addQuestion(level: BlockLevel) {
         _uiState.value = when (level) {
-            BlockLevel.EASY -> _uiState.value.copy(
-                easyQuestions = _uiState.value.easyQuestions + QuestionDraft()
-            )
-            BlockLevel.MEDIUM -> _uiState.value.copy(
-                mediumQuestions = _uiState.value.mediumQuestions + QuestionDraft()
-            )
-            BlockLevel.HARD -> _uiState.value.copy(
-                hardQuestions = _uiState.value.hardQuestions + QuestionDraft()
-            )
+            BlockLevel.EASY -> _uiState.value.copy(easyQuestions = _uiState.value.easyQuestions + QuestionDraft())
+            BlockLevel.MEDIUM -> _uiState.value.copy(mediumQuestions = _uiState.value.mediumQuestions + QuestionDraft())
+            BlockLevel.HARD -> _uiState.value.copy(hardQuestions = _uiState.value.hardQuestions + QuestionDraft())
         }
     }
 
@@ -134,7 +130,8 @@ class CreateQuizViewModel @Inject constructor(
                                 text = draft.text,
                                 imageUri = draft.imageUri,
                                 type = draft.type,
-                                orderIndex = qIndex
+                                orderIndex = qIndex,
+                                explanation = draft.explanation.takeIf { it.isNotBlank() }
                             )
                         )
                         quizRepository.insertOptions(
@@ -150,7 +147,7 @@ class CreateQuizViewModel @Inject constructor(
                     }
                 }
 
-                _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true)
+                _uiState.value = _uiState.value.copy(isSaving = false, isSaved = true, savedTitle = state.title)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
             }

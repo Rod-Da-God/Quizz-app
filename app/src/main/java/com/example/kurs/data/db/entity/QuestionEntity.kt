@@ -26,5 +26,6 @@ data class QuestionEntity(
     val text: String,
     val imageUri: String? = null,
     val type: QuestionType,
-    val orderIndex: Int
+    val orderIndex: Int,
+    val explanation: String? = null
 )

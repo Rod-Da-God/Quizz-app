@@ -12,6 +12,7 @@ import com.example.kurs.ui.play.QuizPlayScreen
 import com.example.kurs.ui.play.QuizResultScreen
 import com.example.kurs.ui.profile.ProfileScreen
 import com.example.kurs.ui.splash.SplashScreen
+import com.example.kurs.ui.study.StudyScreen
 
 @Composable
 fun AppNavGraph() {
@@ -45,6 +46,10 @@ fun AppNavGraph() {
         composable(Screen.Result.route) { backStackEntry ->
             val quizId = backStackEntry.arguments?.getString("quizId")?.toLongOrNull() ?: 0L
             QuizResultScreen(navController = navController, quizId = quizId)
+        }
+        composable(Screen.Study.route) { backStackEntry ->
+            val quizId = backStackEntry.arguments?.getString("quizId")?.toLongOrNull() ?: 0L
+            StudyScreen(navController = navController, quizId = quizId)
         }
     }
 }

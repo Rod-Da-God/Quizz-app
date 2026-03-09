@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.kurs.data.db.entity.QuizEntity
 import com.example.kurs.ui.navigation.Screen
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +27,24 @@ fun HomeScreen(
 ) {
     val quizzes by viewModel.quizzes.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val createdTitle by savedStateHandle
+        ?.getStateFlow<String?>("quiz_created_title", null)
+        ?.collectAsState() ?: remember { mutableStateOf(null) }
+
+    LaunchedEffect(createdTitle) {
+        if (!createdTitle.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(
+                message = "Тест «$createdTitle» успешно создан!",
+                duration = SnackbarDuration.Short
+            )
+            savedStateHandle?.set("quiz_created_title", null)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -42,7 +61,8 @@ fun HomeScreen(
             FloatingActionButton(onClick = { navController.navigate(Screen.Create.route) }) {
                 Icon(Icons.Default.Add, contentDescription = "Создать тест")
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         if (quizzes.isEmpty()) {
             Box(
@@ -64,7 +84,19 @@ fun HomeScreen(
                         onPlayClick = {
                             navController.navigate(Screen.Play.createRoute(quiz.id))
                         },
-                        onDeleteClick = { viewModel.deleteQuiz(quiz) }
+                        onStudyClick = {
+                            navController.navigate(Screen.Study.createRoute(quiz.id))
+                        },
+                        onDeleteClick = {
+                            val title = quiz.title
+                            viewModel.deleteQuiz(quiz)
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Тест «$title» удалён",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
                     )
                 }
             }
@@ -77,6 +109,7 @@ fun QuizCard(
     quiz: QuizEntity,
     isOwner: Boolean,
     onPlayClick: () -> Unit,
+    onStudyClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card(
@@ -127,11 +160,22 @@ fun QuizCard(
 
             Spacer(Modifier.height(12.dp))
 
-            Button(
-                onClick = onPlayClick,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("Начать тест")
+                Button(
+                    onClick = onPlayClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Тест")
+                }
+                OutlinedButton(
+                    onClick = onStudyClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Обучение")
+                }
             }
         }
     }

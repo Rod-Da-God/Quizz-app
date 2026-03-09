@@ -1,11 +1,13 @@
 package com.example.kurs.ui.auth.register
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -21,6 +23,7 @@ fun RegisterScreen(
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -28,6 +31,7 @@ fun RegisterScreen(
 
     LaunchedEffect(uiState) {
         if (uiState is UiState.Success) {
+            Toast.makeText(context, "Аккаунт успешно создан!", Toast.LENGTH_SHORT).show()
             navController.navigate(Screen.Home.route) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }

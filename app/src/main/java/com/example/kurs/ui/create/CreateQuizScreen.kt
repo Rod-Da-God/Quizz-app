@@ -17,7 +17,6 @@ import androidx.navigation.NavController
 import com.example.kurs.data.db.entity.BlockLevel
 import com.example.kurs.data.db.entity.QuestionType
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateQuizScreen(
@@ -27,7 +26,12 @@ fun CreateQuizScreen(
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(state.isSaved) {
-        if (state.isSaved) navController.popBackStack()
+        if (state.isSaved) {
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set("quiz_created_title", state.savedTitle)
+            navController.popBackStack()
+        }
     }
 
     Scaffold(
@@ -183,9 +187,7 @@ fun QuestionDraftItem(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
@@ -198,13 +200,9 @@ fun QuestionDraftItem(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-
                 if (onRemove != null) {
                     FilledTonalIconButton(onClick = onRemove) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Удалить вопрос"
-                        )
+                        Icon(Icons.Default.Delete, contentDescription = "Удалить вопрос")
                     }
                 }
             }
@@ -223,7 +221,10 @@ fun QuestionDraftItem(
 
             Text("Тип вопроса", style = MaterialTheme.typography.labelLarge)
             Text(
-                text = if (draft.type == QuestionType.MULTIPLY_CHOICE) "Можно выбрать несколько правильных ответов" else "Можно выбрать только один правильный ответ",
+                text = if (draft.type == QuestionType.MULTIPLY_CHOICE)
+                    "Можно выбрать несколько правильных ответов"
+                else
+                    "Можно выбрать только один правильный ответ",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -243,47 +244,27 @@ fun QuestionDraftItem(
                     },
                     label = { Text("Один ответ") }
                 )
-
                 Spacer(Modifier.width(8.dp))
-
                 FilterChip(
                     selected = draft.type == QuestionType.MULTIPLY_CHOICE,
-                    onClick = {
-                        onDraftChange(
-                            draft.copy(type = QuestionType.MULTIPLY_CHOICE)
-                        )
-                    },
+                    onClick = { onDraftChange(draft.copy(type = QuestionType.MULTIPLY_CHOICE)) },
                     label = { Text("Несколько ответов") }
                 )
             }
 
-
             Spacer(Modifier.height(8.dp))
-
-            Text(
-                "Варианты ответа",
-                style = MaterialTheme.typography.labelLarge
-            )
-
+            Text("Варианты ответа", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
 
             draft.options.forEachIndexed { optIndex, option ->
-
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(8.dp)
                     ) {
-
                         if (draft.type == QuestionType.SINGLE_CHOICE) {
                             RadioButton(
                                 selected = option.isCorrect,
@@ -310,34 +291,20 @@ fun QuestionDraftItem(
                             value = option.text,
                             onValueChange = { text ->
                                 val newOptions = draft.options.toMutableList()
-                                newOptions[optIndex] =
-                                    option.copy(text = text)
-                                onDraftChange(
-                                    draft.copy(options = newOptions)
-                                )
+                                newOptions[optIndex] = option.copy(text = text)
+                                onDraftChange(draft.copy(options = newOptions))
                             },
-                            placeholder = {
-                                Text("Вариант ${optIndex + 1}")
-                            },
+                            placeholder = { Text("Вариант ${optIndex + 1}") },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
 
                         if (draft.options.size > 2) {
-                            IconButton(
-                                onClick = {
-                                    val newOptions =
-                                        draft.options.toMutableList()
-                                            .also { it.removeAt(optIndex) }
-                                    onDraftChange(
-                                        draft.copy(options = newOptions)
-                                    )
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "Удалить вариант"
-                                )
+                            IconButton(onClick = {
+                                val newOptions = draft.options.toMutableList().also { it.removeAt(optIndex) }
+                                onDraftChange(draft.copy(options = newOptions))
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Удалить вариант")
                             }
                         }
                     }
@@ -345,21 +312,34 @@ fun QuestionDraftItem(
             }
 
             Spacer(Modifier.height(8.dp))
-
             OutlinedButton(
-                onClick = {
-                    onDraftChange(
-                        draft.copy(
-                            options = draft.options + OptionDraft()
-                        )
-                    )
-                },
+                onClick = { onDraftChange(draft.copy(options = draft.options + OptionDraft())) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Добавить вариант")
             }
+
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(12.dp))
+
+            Text("Режим обучения", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "Объясни, почему выбранный ответ правильный. Это покажут пользователю в режиме обучения.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = draft.explanation,
+                onValueChange = { onDraftChange(draft.copy(explanation = it)) },
+                label = { Text("Объяснение (необязательно)") },
+                placeholder = { Text("Например: «Вода кипит при 100°C, потому что…»") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
         }
     }
 }

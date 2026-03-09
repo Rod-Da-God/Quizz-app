@@ -18,7 +18,7 @@ import com.example.kurs.data.db.entity.*
         QuizResultEntity::class,
         AchievementEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
